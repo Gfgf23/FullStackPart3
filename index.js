@@ -1,36 +1,16 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
+const Person = require('./modules/person')
 const app = express()
-
 app.use(cors())
 app.use(express.static('build'))
 app.use(express.json())
 morgan.token('data', (request, response) => { return JSON.stringify(request.body) })
 app.use(morgan('tiny'))
 app.use(morgan(':data'))
-let persons = [
-    { 
-      "name": "Arto Hellas", 
-      "number": "040-123456",
-      "id": 1
-    },
-    { 
-      "name": "Ada Lovelace", 
-      "number": "39-44-5323523",
-      "id": 2
-    },
-    { 
-      "name": "Dan Abramov", 
-      "number": "12-43-234345",
-      "id": 3
-    },
-    { 
-      "name": "Mary Poppendieck", 
-      "number": "39-23-6423122",
-      "id": 4
-    }
-]
+let persons = Person.find({})
 
 const generateId = () => {
 		return Math.floor(Math.random() * 300)
@@ -49,7 +29,9 @@ app.get('/info', (request, response) => {
 })
 
 app.get('/api/persons', (request, response) => {
-  response.json(persons)
+	Person.find({}).then(persons =>{
+		response.json(persons)
+	})
 })
 
 app.get('/api/persons/:id',(request,response) => {
@@ -77,13 +59,15 @@ app.post('/api/persons', (request,response) =>{
 
 		return response.status(400).json({error: 'name must be unique'})
 	}
-	const person = {
+	const person = new Person({
 		name: body.name,
 		number: body.number,
 		id: generateId(),
-	}
-	persons = persons.concat(person)
-	response.json(person)
+	})
+	person.save().then(result =>{
+		response.json(person)
+		mongoose.connection.close()
+	})
 	
 	
 })
