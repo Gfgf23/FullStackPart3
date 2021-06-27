@@ -3,14 +3,23 @@ const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
 const Person = require('./modules/person')
+
 const app = express()
+
 app.use(cors())
 app.use(express.static('build'))
 app.use(express.json())
 morgan.token('data', (request, response) => { return JSON.stringify(request.body) })
 app.use(morgan('tiny'))
 app.use(morgan(':data'))
-let persons = Person.find({})
+const persons = "hello"
+Person.find({}).then(result =>{
+	//persons = result.toJSON()
+	const persons = result
+	console.log(persons)
+})
+console.log(persons)
+
 
 const generateId = () => {
 		return Math.floor(Math.random() * 300)
