@@ -14,19 +14,22 @@ app.use(express.json())
 morgan.token('data', (request, response) => { return JSON.stringify(request.body) })
 app.use(morgan('tiny'))
 app.use(morgan(':data'))
-
+	
 const errorHandler = (error, request, response, next) => {
-  console.error(error.message)
-
+    console.error(error.message)
+   
   if (error.name === 'CastError') {
-	  console.log(error.name)
+	  console.log('CastError')
     return response.status(400).send({ error: 'malformatted id' })
-  } 
+  } else if(error.name ==='ValidationError'){
+	  console.log('ValidationError')
+	  return response.status(400).json({ error: error.message })
+  }
 
   next(error)
 }
 
-app.use(errorHandler)
+
 Person.find({}).then(result =>{
 	//persons = result.toJSON()
 	const persons = result
@@ -46,6 +49,7 @@ const isNameExits = (name,persons) => {
 	
 }
 	
+
 app.get('/info', (request, response) => {
     Person.find({}).then(persons => {
 		response.send(`Phonebook has info for ${persons.length} people \n
@@ -74,35 +78,36 @@ app.get('/api/persons/:id',(request,response) => {
 app.delete('/api/persons/:id', (request,response,next) => {
 	const id =request.params.id
 	Person.findByIdAndRemove(id).then(result =>{
+		console.log("Entered delete")
 		response.status(204).end()
-	
+		
 		
 	})
-	.catch(error =>{
-		next(error)
-	})
+	.catch(error => next(error))
 	
 	
 })
 
-app.post('/api/persons', (request,response) =>{
+app.post('/api/persons', (request,response,next) =>{
 	
 	const body = request.body 
-	Person.find({}).then(persons =>{
-	if(!body.name || !body.number || isNameExits(body.name,persons)){
-		console.log("Duplicate")
-		return response.status(400).end()
-	}
+	
 	const person = new Person({
 		name: body.name,
 		number: body.number,
 		id: generateId(),
 	})
 	person.save().then(result =>{
+		console.log("Entered post")
 		response.json(person)
 		//mongoose.connection.close()
 	})
-	})
+	.catch(error => {
+	
+		next(error)
+		
+		})
+	
 	
 	
 })
@@ -128,6 +133,7 @@ app.put('/api/persons/:id', (request,response,next) => {
 	
 })
 
+app.use(errorHandler)	
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
